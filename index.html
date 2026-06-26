@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도트림스 - 학생용</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --gray: #f5f6fa;
+            --dark: #2f3640;
+        }
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #eef2f7;
+            color: var(--dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px; /* 전체 컨테이너를 패드 화면에 안정적인 크기로 조절 */
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        h1 { text-align: center; color: var(--primary); margin-top: 0; }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background-color: var(--primary);
+            color: white;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+
+        /* ================= 1. 초기 화면 ================= */
+        #screen-init {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            padding: 40px 0;
+        }
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.2rem;
+            width: 400px;
+        }
+        .mode-option input[type="radio"] { transform: scale(1.3); }
+        .mode-option input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            font-size: 1rem;
+            text-align: center;
+        }
+        #init-error { color: red; font-weight: bold; }
+
+        /* ================= 2. 게임 화면 ================= */
+        #screen-game { display: none; }
+        
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .header-area h2 { margin: 0; color: var(--dark); }
+        .btn-top-exit { background-color: #34495e; }
+
+        .instruction-box {
+            background: var(--gray);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        /* [수정] 레이아웃 비율 조정: 보드판 공간을 확보하고 우측 점수 영역을 콤팩트하게 축소 */
+        .game-layout {
+            display: grid;
+            grid-template-columns: 820px 1fr;
+            gap: 20px;
+        }
+
+        /* [수정] 트랙 보드판 내부 요소 크기와 간격을 최적화하여 배경 밖으로 탈출하는 현상 차단 */
+        .track-board {
+            display: grid;
+            grid-template-columns: repeat(6, 122px);
+            grid-template-rows: repeat(6, 102px);
+            gap: 10px;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px dashed #cbd5e1;
+            position: relative;
+            box-sizing: border-box;
+        }
+        
+        /* v2 고유의 부드럽고 예쁜 박스 스타일 유지 */
+        .cell-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 6px;
+            box-sizing: border-box;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        .cell-container.highlight {
+            background-color: #d4edda !important;
+            border-color: var(--success);
+        }
+        .cell-label {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            font-weight: bold;
+            position: absolute;
+            top: 6px;
+            left: 8px;
+        }
+
+        /* v2 스타일의 깔끔한 입력창 유지 */
+        .number-input {
+            width: 80%;
+            height: 42px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--dark);
+        }
+        .number-input:focus { border-color: var(--primary); outline: none; background-color: #e8f2fe; }
+        .number-input:disabled { background-color: #f5f6fa; color: #2f3640; }
+
+        /* 세로형 분수 스타일 */
+        .fraction-ui {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .fraction-numerator, .fraction-denom-input {
+            width: 65%;
+            height: 32px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .fraction-numerator:focus, .fraction-denom-input:focus { border-color: var(--primary); outline: none; background-color: #e8f2fe; }
+        .fraction-line {
+            width: 70%;
+            height: 2px;
+            background-color: var(--dark);
+            margin: 4px 0;
+        }
+        .fraction-denominator {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        /* [수정] 우측 사이드바 디자인 크기 축소 조율 */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .my-score-box {
+            background: #ffeaa7;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border: 2px solid #f1c40f;
+        }
+        .score-board {
+            border-collapse: collapse;
+            width: 100%;
+            background: white;
+            font-size: 0.85rem; /* 폰트 및 패딩을 미세 축소하여 공간 절약 */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .score-board th, .score-board td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 6px;
+            text-align: center;
+        }
+        .score-board th { background: #f1f2f6; }
+        
+        .footer-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div id="screen-init">
+        <h1>도트림스</h1>
+        
+        <div class="mode-option">
+            <label><input type="radio" name="game-mode" value="normal" checked> 자연수</label>
+        </div>
+        
+        <div class="mode-option">
+            <label><input type="radio" name="game-mode" value="same-denom"> 분모가 같은 분수 : </label>
+            <input type="number" id="denom-input" placeholder="분모 입력" inputmode="numeric" pattern="\d*">
+        </div>
+        
+        <div class="mode-option">
+            <label><input type="radio" name="game-mode" value="diff-denom"> 분모가 다른 분수</label>
+        </div>
+        
+        <div id="init-error" class="alert-text"></div>
+        <button onclick="startGame()">시작하기</button>
+    </div>
+
+    <div id="screen-game">
+        <div class="header-area">
+            <h2 id="game-title">게임 모드</h2>
+            <button class="btn-top-exit" onclick="goToInit()">초기화면으로</button>
+        </div>
+        
+        <div class="instruction-box">
+            교사 수 꾸러미에서 나온 숫자를 트랙 순서(1번~15번)에 맞춰 알맞게 입력하세요.
+        </div>
+        
+        <div class="game-layout">
+            <div class="track-board" id="game-board"></div>
+            
+            <div class="sidebar">
+                <div class="my-score-box">
+                    나의 점수: <span id="my-score">-</span>
+                </div>
+                
+                <table class="score-board">
+                    <thead>
+                        <tr><th>칸수</th><th>점수</th><th>칸수</th><th>점수</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1칸</td><td>0</td><td>9칸</td><td>20</td></tr>
+                        <tr><td>2칸</td><td>1</td><td>10칸</td><td>25</td></tr>
+                        <tr><td>3칸</td><td>3</td><td>11칸</td><td>30</td></tr>
+                        <tr><td>4칸</td><td>5</td><td>12칸</td><td>35</td></tr>
+                        <tr><td>5칸</td><td>7</td><td>13칸</td><td>40</td></tr>
+                        <tr><td>6칸</td><td>9</td><td>14칸</td><td>45</td></tr>
+                        <tr><td>7칸</td><td>11</td><td>15칸</td><td>50</td></tr>
+                        <tr><td>8칸</td><td>15</td><td colspan="2" style="background:#eee"></td></tr>
+                    </tbody>
+                </table>
+                
+                <div class="footer-buttons">
+                    <button id="btn-verify" onclick="verifyBoard()" style="background-color: var(--success); width: 100%; padding: 12px;">확인하기</button>
+                    <button id="btn-retry" onclick="retryGame()" style="background-color: #7f8c8d; display:none; width: 100%; padding: 12px;">다시 하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const scoreTable = { 1:0, 2:1, 3:3, 4:5, 5:7, 6:9, 7:11, 8:15, 9:20, 10:25, 11:30, 12:35, 13:40, 14:45, 15:50 };
+
+    let gameMode = 'normal';
+    let chosenDenom = 20;
+
+    const trackPlacements = [
+        { id: 0, row: 1, col: 1 }, { id: 1, row: 1, col: 2 }, { id: 2, row: 1, col: 3 }, { id: 3, row: 1, col: 4 }, { id: 4, row: 1, col: 5 }, 
+        { id: 5, row: 2, col: 5 }, { id: 6, row: 3, col: 5 }, { id: 7, row: 4, col: 5 }, { id: 8, row: 5, col: 5 }, { id: 9, row: 6, col: 5 }, 
+        { id: 10, row: 6, col: 4 }, { id: 11, row: 6, col: 3 }, { id: 12, row: 6, col: 2 }, { id: 13, row: 6, col: 1 }, { id: 14, row: 6, col: 0 }
+    ];
+
+    function startGame() {
+        const modeEl = document.querySelector('input[name="game-mode"]:checked');
+        const denomInput = document.getElementById('denom-input').value;
+        const errorEl = document.getElementById('init-error');
+        errorEl.innerText = "";
+
+        gameMode = modeEl.value;
+
+        if (gameMode === 'same-denom') {
+            if (!denomInput) {
+                errorEl.innerText = "분모를 넣어 주세요!";
+                return;
+            }
+            const denom = parseInt(denomInput, 10);
+            if (denom < 20) {
+                errorEl.innerText = "분모는 20 이상의 수여야 합니다.";
+                return;
+            }
+            chosenDenom = denom;
+        }
+
+        setupGame();
+    }
+
+    function setupGame() {
+        document.getElementById('screen-init').style.display = 'none';
+        document.getElementById('screen-game').style.display = 'block';
+        document.getElementById('btn-retry').style.display = 'none';
+        document.getElementById('btn-verify').style.display = 'inline-block';
+        
+        const titleEl = document.getElementById('game-title');
+        if(gameMode === 'normal') titleEl.innerText = "모드: 자연수 (15칸 트랙)";
+        if(gameMode === 'same-denom') titleEl.innerText = `모드: 분모가 같은 분수 (분모: ${chosenDenom})`;
+        if(gameMode === 'diff-denom') titleEl.innerText = "모드: 분모가 다른 분수";
+
+        document.getElementById('my-score').innerText = "-";
+
+        renderTrackBoard();
+    }
+
+    function renderTrackBoard() {
+        const boardEl = document.getElementById('game-board');
+        boardEl.innerHTML = "";
+        
+        trackPlacements.forEach(pos => {
+            const container = document.createElement('div');
+            container.className = 'cell-container';
+            container.id = `cell-container-${pos.id}`;
+            
+            container.style.gridRow = pos.row;
+            container.style.gridColumn = pos.col + 1;
+
+            const label = document.createElement('div');
+            label.className = 'cell-label';
+            label.innerText = `${pos.id + 1}번`;
+            container.appendChild(label);
+
+            if (gameMode === 'normal') {
+                const input = document.createElement('input');
+                input.className = 'number-input';
+                input.id = `input-num-${pos.id}`;
+                input.type = 'number';
+                input.inputMode = 'numeric';
+                input.pattern = '\\d*';
+                container.appendChild(input);
+            } else if (gameMode === 'same-denom') {
+                const fracWrapper = document.createElement('div');
+                fracWrapper.className = 'fraction-ui';
+
+                const numInput = document.createElement('input');
+                numInput.className = 'fraction-numerator';
+                numInput.id = `input-fraction-num-${pos.id}`;
+                numInput.type = 'number';
+                numInput.inputMode = 'numeric';
+                numInput.pattern = '\\d*';
+
+                const line = document.createElement('div');
+                line.className = 'fraction-line';
+
+                const denomLabel = document.createElement('div');
+                denomLabel.className = 'fraction-denominator';
+                denomLabel.innerText = chosenDenom;
+
+                fracWrapper.appendChild(numInput);
+                fracWrapper.appendChild(line);
+                fracWrapper.appendChild(denomLabel);
+                container.appendChild(fracWrapper);
+            } else if (gameMode === 'diff-denom') {
+                const fracWrapper = document.createElement('div');
+                fracWrapper.className = 'fraction-ui';
+
+                const numInput = document.createElement('input');
+                numInput.className = 'fraction-numerator';
+                numInput.id = `input-fraction-num-${pos.id}`;
+                numInput.type = 'number';
+                numInput.inputMode = 'numeric';
+                numInput.pattern = '\\d*';
+
+                const line = document.createElement('div');
+                line.className = 'fraction-line';
+
+                const denomInput = document.createElement('input');
+                denomInput.className = 'fraction-denom-input';
+                denomInput.id = `input-fraction-den-${pos.id}`;
+                denomInput.type = 'number';
+                denomInput.inputMode = 'numeric';
+                denomInput.pattern = '\\d*';
+
+                fracWrapper.appendChild(numInput);
+                fracWrapper.appendChild(line);
+                fracWrapper.appendChild(denomInput);
+                container.appendChild(fracWrapper);
+            }
+
+            boardEl.appendChild(container);
+        });
+    }
+
+    function getCellFloatValue(id) {
+        if (gameMode === 'normal') {
+            const val = parseFloat(document.getElementById(`input-num-${id}`).value);
+            return isNaN(val) ? null : val;
+        } else if (gameMode === 'same-denom') {
+            const n = parseFloat(document.getElementById(`input-fraction-num-${id}`).value);
+            if (isNaN(n)) return null;
+            return n / chosenDenom;
+        } else if (gameMode === 'diff-denom') {
+            const n = parseFloat(document.getElementById(`input-fraction-num-${id}`).value);
+            const d = parseFloat(document.getElementById(`input-fraction-den-${id}`).value);
+            if (isNaN(n) || isNaN(d) || d === 0) return null;
+            return n / d;
+        }
+        return null;
+    }
+
+    function setInputsDisabled(state) {
+        for(let i=0; i<15; i++) {
+            if (gameMode === 'normal') {
+                document.getElementById(`input-num-${i}`).disabled = state;
+            } else if (gameMode === 'same-denom') {
+                document.getElementById(`input-fraction-num-${i}`).disabled = state;
+            } else if (gameMode === 'diff-denom') {
+                document.getElementById(`input-fraction-num-${i}`).disabled = state;
+                document.getElementById(`input-fraction-den-${i}`).disabled = state;
+            }
+        }
+    }
+
+    function verifyBoard() {
+        let values = [];
+        for (let i = 0; i < 15; i++) {
+            const computedVal = getCellFloatValue(i);
+            if (computedVal === null) {
+                alert("모든 수를 넣어주세요!");
+                return;
+            }
+            values.push(computedVal);
+        }
+
+        let totalScore = 0;
+        let currentStreak = 1;
+        let streakIndices = [0];
+        let allStreaks = [];
+
+        for (let i = 1; i < 15; i++) {
+            if (values[i] >= values[i-1]) {
+                currentStreak++;
+                streakIndices.push(i);
+            } else {
+                totalScore += scoreTable[currentStreak] || 0;
+                if(currentStreak >= 2) allStreaks = allStreaks.concat(streakIndices);
+                currentStreak = 1;
+                streakIndices = [i];
+            }
+        }
+        totalScore += scoreTable[currentStreak] || 0;
+        if(currentStreak >= 2) allStreaks = allStreaks.concat(streakIndices);
+
+        document.getElementById('my-score').innerText = totalScore + " 점";
+        
+        for(let i = 0; i < 15; i++) {
+            if (allStreaks.includes(i)) {
+                document.getElementById(`cell-container-${i}`).classList.add('highlight');
+            }
+        }
+
+        setInputsDisabled(true);
+        document.getElementById('btn-verify').style.display = 'none';
+        document.getElementById('btn-retry').style.display = 'inline-block';
+    }
+
+    function retryGame() {
+        setupGame();
+    }
+
+    function goToInit() {
+        document.getElementById('screen-game').style.display = 'none';
+        document.getElementById('screen-init').style.display = 'flex';
+        document.getElementById('denom-input').value = "";
+    }
+</script>
+</body>
+</html>
