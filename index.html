@@ -25,7 +25,7 @@
         
         .container {
             width: 100%;
-            max-width: 1200px; /* 전체 컨테이너를 패드 화면에 안정적인 크기로 조절 */
+            max-width: 1200px;
             background: white;
             padding: 25px;
             border-radius: 12px;
@@ -92,14 +92,12 @@
             font-weight: bold;
         }
 
-        /* [수정] 레이아웃 비율 조정: 보드판 공간을 확보하고 우측 점수 영역을 콤팩트하게 축소 */
         .game-layout {
             display: grid;
             grid-template-columns: 820px 1fr;
             gap: 20px;
         }
 
-        /* [수정] 트랙 보드판 내부 요소 크기와 간격을 최적화하여 배경 밖으로 탈출하는 현상 차단 */
         .track-board {
             display: grid;
             grid-template-columns: repeat(6, 122px);
@@ -113,7 +111,6 @@
             box-sizing: border-box;
         }
         
-        /* v2 고유의 부드럽고 예쁜 박스 스타일 유지 */
         .cell-container {
             display: flex;
             flex-direction: column;
@@ -127,10 +124,17 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             position: relative;
         }
-        .cell-container.highlight {
-            background-color: #d4edda !important;
-            border-color: var(--success);
+
+        /* [수정] 오름차순 그룹 구분을 위한 교차 색상 클래스 정의 */
+        .cell-container.highlight-a {
+            background-color: #d4edda !important; /* 연한 초록색 */
+            border-color: #2ecc71;
         }
+        .cell-container.highlight-b {
+            background-color: #d1ecf1 !important; /* 연한 하늘색 */
+            border-color: #17a2b8;
+        }
+
         .cell-label {
             font-size: 0.8rem;
             color: #7f8c8d;
@@ -140,7 +144,6 @@
             left: 8px;
         }
 
-        /* v2 스타일의 깔끔한 입력창 유지 */
         .number-input {
             width: 80%;
             height: 42px;
@@ -152,9 +155,8 @@
             color: var(--dark);
         }
         .number-input:focus { border-color: var(--primary); outline: none; background-color: #e8f2fe; }
-        .number-input:disabled { background-color: #f5f6fa; color: #2f3640; }
+        .number-input:disabled { background-color: transparent; color: #2f3640; } /* 비활성화 시 배경색 유지 */
 
-        /* 세로형 분수 스타일 */
         .fraction-ui {
             display: flex;
             flex-direction: column;
@@ -173,6 +175,8 @@
             font-weight: bold;
         }
         .fraction-numerator:focus, .fraction-denom-input:focus { border-color: var(--primary); outline: none; background-color: #e8f2fe; }
+        .fraction-numerator:disabled, .fraction-denom-input:disabled { background-color: transparent; color: #2f3640; }
+        
         .fraction-line {
             width: 70%;
             height: 2px;
@@ -185,7 +189,6 @@
             color: #2c3e50;
         }
 
-        /* [수정] 우측 사이드바 디자인 크기 축소 조율 */
         .sidebar {
             display: flex;
             flex-direction: column;
@@ -204,7 +207,7 @@
             border-collapse: collapse;
             width: 100%;
             background: white;
-            font-size: 0.85rem; /* 폰트 및 패딩을 미세 축소하여 공간 절약 */
+            font-size: 0.85rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
         .score-board th, .score-board td {
@@ -449,6 +452,7 @@
         }
     }
 
+    /* [수정] 교차 색상 하이라이트 로직이 내장된 확인 기능 */
     function verifyBoard() {
         let values = [];
         for (let i = 0; i < 15; i++) {
@@ -463,7 +467,9 @@
         let totalScore = 0;
         let currentStreak = 1;
         let streakIndices = [0];
-        let allStreaks = [];
+        
+        // 발견되는 독립된 유효 오름차순 그룹들을 담을 배열
+        let groups = []; 
 
         for (let i = 1; i < 15; i++) {
             if (values[i] >= values[i-1]) {
@@ -471,21 +477,29 @@
                 streakIndices.push(i);
             } else {
                 totalScore += scoreTable[currentStreak] || 0;
-                if(currentStreak >= 2) allStreaks = allStreaks.concat(streakIndices);
+                // 2칸 이상 연속된 그룹만 하이라이트 대상으로 저장
+                if (currentStreak >= 2) {
+                    groups.push([...streakIndices]);
+                }
                 currentStreak = 1;
                 streakIndices = [i];
             }
         }
+        // 마지막 남은 그룹 정산
         totalScore += scoreTable[currentStreak] || 0;
-        if(currentStreak >= 2) allStreaks = allStreaks.concat(streakIndices);
+        if (currentStreak >= 2) {
+            groups.push([...streakIndices]);
+        }
 
         document.getElementById('my-score').innerText = totalScore + " 점";
         
-        for(let i = 0; i < 15; i++) {
-            if (allStreaks.includes(i)) {
-                document.getElementById(`cell-container-${i}`).classList.add('highlight');
-            }
-        }
+        // [수정] 수집된 각 그룹에 두 가지 색상 클래스(highlight-a, highlight-b)를 번갈아 부여
+        groups.forEach((group, index) => {
+            const colorClass = (index % 2 === 0) ? 'highlight-a' : 'highlight-b';
+            group.forEach(cellId => {
+                document.getElementById(`cell-container-${cellId}`).classList.add(colorClass);
+            });
+        });
 
         setInputsDisabled(true);
         document.getElementById('btn-verify').style.display = 'none';
